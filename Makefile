@@ -1,4 +1,4 @@
-.PHONY: db migrate import api web lint test build
+.PHONY: db migrate import prices api web lint test build
 
 db:
 	docker compose up -d
@@ -9,6 +9,9 @@ migrate:
 import:
 	cd api && uv run logpose import-cards
 
+prices:
+	cd api && uv run logpose import-prices
+
 api:
 	cd api && uv run uvicorn api.main:app --reload
 
@@ -17,6 +20,7 @@ web:
 
 test:
 	cd api && uv run pytest
+	cd web && npm test
 
 lint:
 	cd api && uv run ruff check . 

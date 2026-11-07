@@ -1,12 +1,13 @@
+from datetime import date
 from typing import Annotated
 
 from fastapi import APIRouter, Query
 from pydantic import BaseModel
-from sqlalchemy import Select, or_, select
+from sqlalchemy import Select, func, or_, select
 
 from api.auth import CurrentUser
 from api.db import Db
-from api.models import Card, Printing, Set
+from api.models import Card, PricePoint, Printing, Set
 
 router = APIRouter(prefix="/api", tags=["catalog"])
 
@@ -29,9 +30,12 @@ class PrintingOut(BaseModel):
     variant: str
     language: str
     image_url: str | None
+    trend_cents: int | None  # None = no match we trust
 
 
-def printing_out(printing: Printing, card: Card, set_: Set) -> PrintingOut:
+def printing_out(
+    printing: Printing, card: Card, set_: Set, trend: int | None
+) -> PrintingOut:
     return PrintingOut(
         id=printing.id,
         card_number=card.card_number,
@@ -41,12 +45,25 @@ def printing_out(printing: Printing, card: Card, set_: Set) -> PrintingOut:
         variant=printing.variant,
         language=printing.language,
         image_url=printing.image_url,
+        # old prices stay in the history when a match is removed, don't show them
+        trend_cents=trend if printing.cardmarket_id else None,
     )
+
+
+# newest price per printing, uses the (printing_id, day) primary key as index
+latest_trend = (
+    select(PricePoint.trend_cents)
+    .where(PricePoint.printing_id == Printing.id)
+    .order_by(PricePoint.day.desc())
+    .limit(1)
+    .correlate(Printing)
+    .scalar_subquery()
+)
 
 
 def printings_query() -> Select:
     return (
-        select(Printing, Card, Set)
+        select(Printing, Card, Set, latest_trend)
         .join(Card, Card.id == Printing.card_id)
         .join(Set, Set.id == Printing.set_id)
     )
@@ -61,6 +78,24 @@ def matching(text: str):
         Card.name.ilike(f"%{escaped}%", escape="\\"),
         Card.card_number.ilike(f"{escaped}%", escape="\\"),
     )
+
+
+class PriceStatus(BaseModel):
+    updated_on: date | None
+    priced_printings: int
+
+
+@router.get("/prices/status")
+def price_status(db: Db, _: CurrentUser) -> PriceStatus:
+    day = db.scalar(select(func.max(PricePoint.day)))
+    count = (
+        db.scalar(
+            select(func.count()).select_from(PricePoint).where(PricePoint.day == day)
+        )
+        if day
+        else 0
+    )
+    return PriceStatus(updated_on=day, priced_printings=count)
 
 
 @router.get("/sets")

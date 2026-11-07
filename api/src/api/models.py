@@ -46,6 +46,21 @@ class Printing(Base):
     language: Mapped[str]
     source_ref: Mapped[str] = mapped_column(unique=True)
     image_url: Mapped[str | None]
+    # cardmarket product id, only if we trust the match
+    cardmarket_id: Mapped[int | None] = mapped_column(unique=True)
+
+
+class PricePoint(Base):
+    # one trend price per printing per day. kept as a series because you can't
+    # download old prices later
+
+    __tablename__ = "price_points"
+
+    printing_id: Mapped[int] = mapped_column(
+        ForeignKey("printings.id"), primary_key=True
+    )
+    day: Mapped[date] = mapped_column(Date, primary_key=True)
+    trend_cents: Mapped[int]
 
 
 class User(Base):

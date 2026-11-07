@@ -1,7 +1,7 @@
 # Logpose
 
 collection tracker for the One Piece TCG. keeps track of what cards i have,
-where they are and what i paid.
+where they are and what i paid, and shows what they're worth on Cardmarket.
 
 it's a rewrite of an older app i built for myself, this time with tests and CI
 from the start.
@@ -12,7 +12,8 @@ from the start.
 - login with server-side sessions
 - collection: add cards by name or number, with quantity, condition, price paid
   and location. filter, edit, delete
-- next up: cardmarket prices
+- daily Cardmarket trend prices for about 80% of printings, collection value
+  and profit/loss
 
 ## stack
 
@@ -20,7 +21,7 @@ from the start.
 |---|---|
 | API | Python 3.12, FastAPI, SQLAlchemy 2.0, Alembic, Postgres 16 |
 | Web | React 19, TypeScript, Vite, TanStack Query, Tailwind CSS |
-| Checks | pytest against a real Postgres, Ruff, Oxlint, GitHub Actions |
+| Checks | pytest against a real Postgres, Vitest, Ruff, Oxlint, GitHub Actions |
 
 ## run it
 
@@ -30,6 +31,7 @@ needs Docker, [uv](https://docs.astral.sh/uv/), Node 24 and `make`.
 make db                                        # just postgres, in docker
 make migrate
 make import                                    # all cards, ~30 s
+make prices                                    # today's cardmarket prices, ~5 s
 cd api && uv run logpose create-user you@example.com && cd ..
 make api                                       # api on :8000
 make web                                       # second terminal, ui on :5173
@@ -52,10 +54,11 @@ api/src/api/
   main.py         app + routers
   models.py       all tables
   auth.py         passwords, sessions, login/logout/me
-  catalog.py      sets and printing search (same for every user)
+  catalog.py      sets, printing search, prices (same for every user)
   collection.py   your locations and lots
   punkrecords.py  card import
-  cli.py          logpose import-cards | create-user
+  cardmarket.py   price import, matches cardmarket products to printings
+  cli.py          logpose import-cards | import-prices | create-user
 api/alembic/      migrations
 api/tests/        each test runs in a transaction that gets rolled back
 web/src/          react app, api.ts is the only file that talks to the server
@@ -63,6 +66,15 @@ web/src/          react app, api.ts is the only file that talks to the server
 
 ## some decisions
 
+- **no price is better than a wrong one.** cardmarket's public files don't say
+  if a product is base or parallel (2 € vs 2,000 €) or english or japanese.
+  the language per expansion comes from a small table i checked by hand
+  (`cardmarket_expansions.csv`). inside an expansion the variants get matched
+  by the order cardmarket listed them, and a whole group gets skipped if
+  anything doesn't add up. checked against 7,813 pairs from my old app, 99.7%
+  agree. the other ~20% just show no price.
+- **prices are kept per day** (`price_points`), you can't download old prices
+  later.
 - **lots, not a counter.** "3 copies of OP01-016, bought on 2026-03-02 for
   2.50 € each". how many you own is the sum of your lots.
 - **money is integer cents**, floats can't do 0.29 exactly.
@@ -79,4 +91,6 @@ web/src/          react app, api.ts is the only file that talks to the server
 
 - no rate limit on login, fine for a few users but needed before it's public
 - card images are linked straight from bandai's site
+- ~20% of printings have no price, mostly reprints and promos the matching skips
+- prices only refresh with `make prices`, no daily job yet
 - every account has its own collection, no shared collections yet

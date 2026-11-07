@@ -4,6 +4,7 @@ import {
   api,
   CONDITIONS,
   del,
+  euros,
   patch,
   post,
   query,
@@ -87,8 +88,14 @@ function PrintingPicker({ onPick, onCancel }: { onPick: (p: Printing) => void; o
       <ul className="max-h-96 space-y-1 overflow-y-auto">
         {results.data?.map((p) => (
           <li key={p.id}>
-            <button className="w-full rounded-md p-2 text-left hover:bg-raised" onClick={() => onPick(p)}>
+            <button
+              className="flex w-full items-center justify-between gap-3 rounded-md p-2 text-left hover:bg-raised"
+              onClick={() => onPick(p)}
+            >
               <PrintingLabel printing={p} />
+              <span className="shrink-0 font-mono text-sm text-muted">
+                {p.trend_cents == null ? '—' : euros(p.trend_cents)}
+              </span>
             </button>
           </li>
         ))}

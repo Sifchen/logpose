@@ -7,7 +7,7 @@ import sys
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from api import punkrecords
+from api import cardmarket, punkrecords
 from api.auth import hash_password, normalize_email
 from api.db import engine
 from api.models import User
@@ -33,12 +33,17 @@ def main() -> None:
     parser = argparse.ArgumentParser(prog="logpose")
     commands = parser.add_subparsers(dest="command", required=True)
     commands.add_parser("import-cards", help="import sets and cards from punk-records")
+    commands.add_parser(
+        "import-prices", help="match and store today's Cardmarket prices"
+    )
     new_user = commands.add_parser("create-user", help="create a login")
     new_user.add_argument("email")
 
     args = parser.parse_args()
     if args.command == "import-cards":
         punkrecords.run()
+    elif args.command == "import-prices":
+        cardmarket.run()
     elif args.command == "create-user":
         create_user(args.email)
 

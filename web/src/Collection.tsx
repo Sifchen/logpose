@@ -1,8 +1,18 @@
 import { useState, type ReactNode } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
-import { api, CONDITIONS, euros, query, type CardSet, type Location, type Lot } from './api.ts'
+import {
+  api,
+  CONDITIONS,
+  euros,
+  query,
+  type CardSet,
+  type Location,
+  type Lot,
+  type PriceStatus,
+} from './api.ts'
 import LocationsDialog from './Locations.tsx'
 import LotDialog, { PrintingLabel } from './LotDialog.tsx'
+import { summarise } from './totals.ts'
 import { useDebounced } from './useDebounced.ts'
 
 const NO_FILTERS = { q: '', set_id: '', location_id: '', condition: '', language: '' }
@@ -22,11 +32,11 @@ export default function Collection() {
   })
   const sets = useQuery({ queryKey: ['sets'], queryFn: () => api<CardSet[]>('/api/sets'), staleTime: Infinity })
   const locations = useQuery({ queryKey: ['locations'], queryFn: () => api<Location[]>('/api/locations') })
+  const prices = useQuery({ queryKey: ['prices'], queryFn: () => api<PriceStatus>('/api/prices/status') })
 
   const set = (key: keyof Filters) => (value: string) => setFilters((f) => ({ ...f, [key]: value }))
   const rows = lots.data ?? []
-  const copies = rows.reduce((sum, lot) => sum + lot.quantity, 0)
-  const cost = rows.reduce((sum, lot) => sum + (lot.unit_cost_cents ?? 0) * lot.quantity, 0)
+  const totals = summarise(rows)
 
   return (
     <div className="mx-auto max-w-6xl space-y-4 p-6">
@@ -34,7 +44,8 @@ export default function Collection() {
         <div>
           <h1 className="text-3xl font-black tracking-tight">Collection</h1>
           <p className="font-mono text-sm text-muted">
-            {copies} cards · {rows.length} lots · paid {euros(cost)}
+            {totals.copies} cards in {rows.length} lots · {totals.pricedCopies} priced
+            {prices.data?.updated_on && ` · Cardmarket trend of ${prices.data.updated_on}`}
           </p>
         </div>
         <div className="flex gap-2">
@@ -45,6 +56,17 @@ export default function Collection() {
             Add cards
           </button>
         </div>
+      </div>
+
+      <div className="grid grid-cols-3 gap-3">
+        <Stat label="Value" value={euros(totals.value)} />
+        <Stat label="Paid" value={euros(totals.paid)} />
+        <Stat
+          label="Profit / loss"
+          hint="lots with both a price paid and a market price"
+          value={(totals.profit >= 0 ? '+' : '') + euros(totals.profit)}
+          tone={totals.profit >= 0 ? 'text-ok' : 'text-danger'}
+        />
       </div>
 
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-6">
@@ -89,6 +111,8 @@ export default function Collection() {
               <th className="p-3 text-right">Qty</th>
               <th className="p-3">Cond.</th>
               <th className="p-3 text-right">Paid / card</th>
+              <th className="p-3 text-right">Trend</th>
+              <th className="p-3 text-right">Value</th>
               <th className="p-3">Location</th>
               <th className="p-3">Acquired</th>
             </tr>
@@ -106,6 +130,12 @@ export default function Collection() {
                 <td className="p-3 text-right font-mono">
                   {lot.unit_cost_cents == null ? '—' : euros(lot.unit_cost_cents)}
                 </td>
+                <td className="p-3 text-right font-mono">
+                  {lot.printing.trend_cents == null ? '—' : euros(lot.printing.trend_cents)}
+                </td>
+                <td className="p-3 text-right font-mono font-semibold">
+                  {lot.printing.trend_cents == null ? '—' : euros(lot.printing.trend_cents * lot.quantity)}
+                </td>
                 <td className="p-3 text-muted">{lot.location?.name ?? '—'}</td>
                 <td className="p-3 font-mono text-muted">{lot.acquired_on}</td>
               </tr>
@@ -121,6 +151,15 @@ export default function Collection() {
 
       {editing && <LotDialog lot={editing === 'new' ? null : editing} onClose={() => setEditing(null)} />}
       {managingLocations && <LocationsDialog onClose={() => setManagingLocations(false)} />}
+    </div>
+  )
+}
+
+function Stat({ label, value, hint, tone = '' }: { label: string; value: string; hint?: string; tone?: string }) {
+  return (
+    <div className="rounded-xl border border-line-soft bg-ink p-4" title={hint}>
+      <div className="text-xs font-semibold tracking-widest text-muted uppercase">{label}</div>
+      <div className={`mt-1 font-mono text-2xl font-bold ${tone}`}>{value}</div>
     </div>
   )
 }

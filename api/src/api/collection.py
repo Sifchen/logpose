@@ -122,7 +122,7 @@ def lots_query(user: User):
     )
 
 
-def lot_out(printing, card, set_, lot: Lot, location: Location | None) -> LotOut:
+def lot_out(printing, card, set_, trend, lot: Lot, location: Location | None) -> LotOut:
     return LotOut(
         id=lot.id,
         quantity=lot.quantity,
@@ -131,7 +131,7 @@ def lot_out(printing, card, set_, lot: Lot, location: Location | None) -> LotOut
         unit_cost_cents=lot.unit_cost_cents,
         note=lot.note,
         location=LocationOut(id=location.id, name=location.name) if location else None,
-        printing=printing_out(printing, card, set_),
+        printing=printing_out(printing, card, set_, trend),
     )
 
 

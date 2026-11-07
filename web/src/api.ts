@@ -50,7 +50,9 @@ export type Printing = {
   variant: string
   language: string
   image_url: string | null
+  trend_cents: number | null // null = no match we trust
 }
+export type PriceStatus = { updated_on: string | null; priced_printings: number }
 export type Lot = {
   id: number
   quantity: number
