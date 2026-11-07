@@ -1,7 +1,10 @@
-.PHONY: db api web lint test build
+.PHONY: db migrate api web lint test build
 
 db:
 	docker compose up -d
+
+migrate:
+	cd api && uv run alembic upgrade head
 
 api:
 	cd api && uv run uvicorn api.main:app --reload

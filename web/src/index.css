@@ -1,1 +1,32 @@
 @import "tailwindcss";
+
+/* dark blue-ish theme, same colors as my old app */
+@theme {
+  --color-sunk: #0b0e12;
+  --color-ink: #12171d;
+  --color-surface: #1c242d;
+  --color-raised: #252f3a;
+  --color-line: #3b4e61;
+  --color-line-soft: #243040;
+  --color-fg: #eaf0f6;
+  --color-muted: #8c9aa9;
+  --color-focus: #22d3ee;
+  --color-danger: #d8433c;
+  --color-ok: #35a56b;
+}
+
+body {
+  @apply bg-sunk text-fg antialiased;
+}
+
+@layer components {
+  .input {
+    @apply w-full rounded-md border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-focus;
+  }
+  .btn {
+    @apply rounded-md border border-line px-3 py-1.5 text-sm font-semibold hover:bg-raised disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply rounded-md bg-focus px-3 py-2 text-sm font-bold text-sunk hover:brightness-110 disabled:opacity-50;
+  }
+}

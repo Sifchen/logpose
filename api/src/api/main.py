@@ -1,6 +1,9 @@
 from fastapi import FastAPI
 
-app = FastAPI()
+from api import auth
+
+app = FastAPI(title="Logpose")
+app.include_router(auth.router)
 
 
 @app.get("/health")
