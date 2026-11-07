@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError, post, type User } from './api.ts'
+import Collection from './Collection.tsx'
 import Login from './Login.tsx'
 
 export default function App() {
@@ -32,7 +33,9 @@ export default function App() {
           </button>
         </div>
       </header>
-      <main className="p-6 text-muted">Your collection comes in the next step.</main>
+      <main>
+        <Collection />
+      </main>
     </div>
   )
 }

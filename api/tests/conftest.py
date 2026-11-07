@@ -63,10 +63,25 @@ def user(session):
     return make_user(session, "nami@example.com")
 
 
-@pytest.fixture
-def logged_in(client, user):
+def _log_in(client, email: str) -> TestClient:
     response = client.post(
-        "/api/auth/login", json={"email": user.email, "password": PASSWORD}
+        "/api/auth/login", json={"email": email, "password": PASSWORD}
     )
     assert response.status_code == 200
     return client
+
+
+@pytest.fixture
+def logged_in(client, user):
+    return _log_in(client, user.email)
+
+
+@pytest.fixture
+def login_as(session, client):
+    # switches the client to a new user: login_as("zoro@example.com")
+
+    def switch(email: str) -> TestClient:
+        make_user(session, email)
+        return _log_in(client, email)
+
+    return switch
