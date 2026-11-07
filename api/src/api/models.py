@@ -34,3 +34,4 @@ class Printing(Base):
     rarity: Mapped[str]
     variant: Mapped[str]
     language: Mapped[str]
+    source_ref: Mapped[str] = mapped_column(unique=True)
