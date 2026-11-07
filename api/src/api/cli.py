@@ -3,14 +3,16 @@
 import argparse
 import getpass
 import sys
+from datetime import date
 
+import httpx2
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from api import cardmarket, punkrecords
 from api.auth import hash_password, normalize_email
 from api.db import engine
-from api.models import User
+from api.models import PricePoint, Set, User
 
 
 def create_user(email: str) -> None:
@@ -29,6 +31,26 @@ def create_user(email: str) -> None:
     print(f"Created {email}.")
 
 
+def setup() -> None:
+    # runs on every container start, only loads what's missing
+    with Session(engine) as session:
+        has_cards = session.scalar(select(Set.id).limit(1)) is not None
+        priced_today = (
+            session.scalar(
+                select(PricePoint.day).where(PricePoint.day == date.today()).limit(1)
+            )
+            is not None
+        )
+    if not has_cards:
+        punkrecords.run()
+    if not priced_today:
+        try:
+            cardmarket.run()
+        except httpx2.HTTPError as error:
+            # works without today's prices, next start tries again
+            print(f"Skipping prices for now: {error}")
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(prog="logpose")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -36,11 +58,14 @@ def main() -> None:
     commands.add_parser(
         "import-prices", help="match and store today's Cardmarket prices"
     )
+    commands.add_parser("setup", help="import cards and prices if missing")
     new_user = commands.add_parser("create-user", help="create a login")
     new_user.add_argument("email")
 
     args = parser.parse_args()
-    if args.command == "import-cards":
+    if args.command == "setup":
+        setup()
+    elif args.command == "import-cards":
         punkrecords.run()
     elif args.command == "import-prices":
         cardmarket.run()

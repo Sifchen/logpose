@@ -23,7 +23,25 @@ from the start.
 | Web | React 19, TypeScript, Vite, TanStack Query, Tailwind CSS |
 | Checks | pytest against a real Postgres, Vitest, Ruff, Oxlint, GitHub Actions |
 
-## run it
+## try it
+
+you only need Docker.
+
+```sh
+docker compose up --build -d
+docker compose logs -f app      # first start loads cards and prices, takes about a minute
+```
+
+when the log says `Uvicorn running`, hit Ctrl+C and make a login:
+
+```sh
+docker compose exec app logpose create-user you@example.com   # asks for a password
+```
+
+then open http://localhost:8000. every start runs the migrations and only loads
+cards or prices if they're missing, so later starts are quick.
+
+## develop
 
 needs Docker, [uv](https://docs.astral.sh/uv/), Node 24 and `make`.
 
@@ -47,6 +65,9 @@ make test
 make lint
 ```
 
+CI runs the same `make lint`, `make test` and `make build` on every PR and
+builds the docker image.
+
 ## layout
 
 ```
@@ -58,7 +79,7 @@ api/src/api/
   collection.py   your locations and lots
   punkrecords.py  card import
   cardmarket.py   price import, matches cardmarket products to printings
-  cli.py          logpose import-cards | import-prices | create-user
+  cli.py          logpose import-cards | import-prices | create-user | setup
 api/alembic/      migrations
 api/tests/        each test runs in a transaction that gets rolled back
 web/src/          react app, api.ts is the only file that talks to the server
@@ -92,5 +113,5 @@ web/src/          react app, api.ts is the only file that talks to the server
 - no rate limit on login, fine for a few users but needed before it's public
 - card images are linked straight from bandai's site
 - ~20% of printings have no price, mostly reprints and promos the matching skips
-- prices only refresh with `make prices`, no daily job yet
+- prices refresh on container start or with `make prices`, no daily job yet
 - every account has its own collection, no shared collections yet

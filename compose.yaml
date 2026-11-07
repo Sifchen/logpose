@@ -9,6 +9,21 @@ services:
       - "127.0.0.1:5432:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "logpose"]
+      interval: 2s
+      retries: 15
+
+  # the whole app on http://localhost:8000, `make db` only starts the db
+  app:
+    build: .
+    environment:
+      DATABASE_URL: postgresql+psycopg://logpose:dev@db:5432/logpose
+    ports:
+      - "127.0.0.1:8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
 
 volumes:
   db_data:

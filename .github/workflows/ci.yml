@@ -32,4 +32,10 @@ jobs:
       - run: make lint
       - run: make test
       - run: make build
-      
+
+  # make sure the docker image builds too
+  image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - run: docker build -t logpose .

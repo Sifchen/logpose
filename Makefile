@@ -1,7 +1,7 @@
 .PHONY: db migrate import prices api web lint test build
 
 db:
-	docker compose up -d
+	docker compose up -d db
 
 migrate:
 	cd api && uv run alembic upgrade head
