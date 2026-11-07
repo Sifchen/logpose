@@ -35,3 +35,4 @@ class Printing(Base):
     variant: Mapped[str]
     language: Mapped[str]
     source_ref: Mapped[str] = mapped_column(unique=True)
+    image_url: Mapped[str | None]

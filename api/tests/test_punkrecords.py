@@ -73,8 +73,18 @@ def test_import_pack_twice(session):
     pack = {"id": "569101", "raw_title": "BOOSTER PACK -ROMANCE DAWN- [OP-01]"}
     card = {"name": "Nami", "category": "Character", "colors": ["Red"]}
     cards = [
-        {**card, "id": "OP01-016", "rarity": "Rare"},
-        {**card, "id": "OP01-016_p1", "rarity": "Rare"},
+        {
+            **card,
+            "id": "OP01-016",
+            "rarity": "Rare",
+            "img_full_url": "https://example.com/OP01-016.png",
+        },
+        {
+            **card,
+            "id": "OP01-016_p1",
+            "rarity": "Rare",
+            "img_full_url": "https://example.com/OP01-016.png",
+        },
     ]
 
     import_pack(session, "english", pack, cards)

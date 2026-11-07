@@ -71,6 +71,7 @@ def get_or_create_printing(
     rarity: str,
     variant: str,
     language: str,
+    image_url: str,
 ) -> Printing:
     res = session.scalars(
         select(Printing).where(Printing.source_ref == source_ref)
@@ -84,8 +85,11 @@ def get_or_create_printing(
             rarity=rarity,
             variant=variant,
             language=language,
+            image_url=image_url,
         )
         session.add(res)
+
+    res.image_url = image_url  # In case URL changes and Printing already in DB
 
     return res
 
@@ -111,6 +115,7 @@ def import_pack(session, locale: str, pack: dict, cards: list[dict]) -> None:
             c["rarity"],
             variant,
             LANGUAGES[locale],
+            c["img_full_url"],
         )
 
 
