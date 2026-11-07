@@ -8,20 +8,28 @@ on:
 jobs:
   check:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: logpose_test
+          POSTGRES_USER: logpose
+          POSTGRES_PASSWORD: dev
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U logpose"
+          --health-interval 5s
+          --health-retries 5
     steps:
       - uses: actions/checkout@v5
-
       - uses: astral-sh/setup-uv@v10.0.1
-
       - uses: actions/setup-node@v5
         with:
           node-version: '24'
-
       - run: npm ci
         working-directory: web
-
       - run: make lint
-
       - run: make test
-      
       - run: make build
+      
