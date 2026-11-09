@@ -29,7 +29,8 @@ class PrintingOut(BaseModel):
     rarity: str
     variant: str
     language: str
-    image_url: str | None
+    colors: list[str]
+    image_url: str | None  # our own /api/... url, see images.py
     trend_cents: int | None  # None = no match we trust
 
 
@@ -44,7 +45,8 @@ def printing_out(
         rarity=printing.rarity,
         variant=printing.variant,
         language=printing.language,
-        image_url=printing.image_url,
+        colors=card.colors,
+        image_url=f"/api/printings/{printing.id}/image" if printing.image_url else None,
         # old prices stay in the history when a match is removed, don't show them
         trend_cents=trend if printing.cardmarket_id else None,
     )
@@ -111,7 +113,8 @@ def search_printings(
     q: SearchText = None,
     set_id: int | None = None,
     language: str | None = None,
-    limit: Annotated[int, Query(ge=1, le=100)] = 40,
+    # 500 so a whole set with all variants fits in one request
+    limit: Annotated[int, Query(ge=1, le=500)] = 40,
 ) -> list[PrintingOut]:
     stmt = printings_query()
     if q:
@@ -120,5 +123,12 @@ def search_printings(
         stmt = stmt.where(Printing.set_id == set_id)
     if language:
         stmt = stmt.where(Printing.language == language)
-    stmt = stmt.order_by(Card.card_number, Printing.language, Printing.source_ref)
+    # base printing first (False sorts before True), then variants, then reprints
+    stmt = stmt.order_by(
+        Card.card_number,
+        Printing.language,
+        Printing.variant != "base",
+        Set.code,
+        Printing.source_ref,
+    )
     return [printing_out(*row) for row in db.execute(stmt.limit(limit))]

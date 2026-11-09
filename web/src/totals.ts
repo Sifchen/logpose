@@ -1,4 +1,4 @@
-import type { Lot } from './api.ts'
+import type { Lot, Printing } from './api.ts'
 
 // unknown prices stay unknown, they never count as 0
 export function summarise(lots: Lot[]) {
@@ -19,4 +19,41 @@ export function summarise(lots: Lot[]) {
     if (trend != null && cost != null) profit += (trend - cost) * quantity
   }
   return { copies, pricedCopies, value, paid, profit }
+}
+
+export type PrintingGroup = {
+  printing: Printing
+  lots: Lot[]
+  quantity: number
+  value: number | null // null = no price, not 0
+}
+
+// one entry per printing, for the grid tiles
+export function groupByPrinting(lots: Lot[]): PrintingGroup[] {
+  const groups = new Map<number, PrintingGroup>()
+  for (const lot of lots) {
+    let group = groups.get(lot.printing.id)
+    if (!group) {
+      group = { printing: lot.printing, lots: [], quantity: 0, value: null }
+      groups.set(lot.printing.id, group)
+    }
+    group.lots.push(lot)
+    group.quantity += lot.quantity
+  }
+  for (const group of groups.values()) {
+    const trend = group.printing.trend_cents
+    group.value = trend == null ? null : trend * group.quantity
+  }
+  return [...groups.values()]
+}
+
+export type SortKey = 'worth' | 'number'
+
+export function sortGroups(groups: PrintingGroup[], by: SortKey): PrintingGroup[] {
+  const byWorth = (a: PrintingGroup, b: PrintingGroup) => (b.value ?? -1) - (a.value ?? -1)
+  const byNumber = (a: PrintingGroup, b: PrintingGroup) =>
+    a.printing.set_code.localeCompare(b.printing.set_code) ||
+    a.printing.card_number.localeCompare(b.printing.card_number) ||
+    a.printing.id - b.printing.id
+  return [...groups].sort(by === 'worth' ? byWorth : byNumber)
 }

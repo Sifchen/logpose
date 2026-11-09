@@ -3,12 +3,13 @@ import os
 from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 
-from api import auth, catalog, collection
+from api import auth, catalog, collection, images
 
 app = FastAPI(title="Logpose")
 app.include_router(auth.router)
 app.include_router(catalog.router)
 app.include_router(collection.router)
+app.include_router(images.router)
 
 
 @app.get("/health")

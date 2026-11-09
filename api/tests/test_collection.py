@@ -65,6 +65,26 @@ def test_search_treats_percent_literally(logged_in, catalog):
     assert logged_in.get("/api/printings", params={"q": "%%"}).json() == []
 
 
+def test_search_lists_the_plain_printing_first(logged_in, session, catalog):
+    nami = catalog["nami_en"]
+    # its source_ref sorts before the base one, so only the variant rule puts it second
+    session.add(
+        Printing(
+            card_id=nami.card_id,
+            set_id=nami.set_id,
+            rarity="Rare",
+            variant="parallel",
+            language="EN",
+            source_ref="EN:OP01-015-parallel",
+        )
+    )
+    session.flush()
+    found = logged_in.get(
+        "/api/printings", params={"q": "OP01-016", "language": "EN"}
+    ).json()
+    assert [p["variant"] for p in found] == ["base", "parallel"]
+
+
 def test_create_lot_returns_printing_details(logged_in, catalog):
     lot = add_lot(
         logged_in, catalog["nami_en"], quantity=3, unit_cost_cents=250, condition="EX"
@@ -184,3 +204,52 @@ def test_other_users_lots_are_invisible(logged_in, catalog, login_as):
         "location_id": box["id"],
     }
     assert client.post("/api/lots", json=body).status_code == 422
+
+
+def add_one(client, printing, **fields):
+    response = client.post(
+        "/api/lots/add-one", json={"printing_id": printing.id, **fields}
+    )
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def test_add_one_grows_the_same_lot(logged_in, catalog):
+    first = add_one(logged_in, catalog["nami_en"])
+    second = add_one(logged_in, catalog["nami_en"])
+    assert second["id"] == first["id"]
+    assert second["quantity"] == 2
+    assert len(logged_in.get("/api/lots").json()) == 1
+
+
+def test_add_one_keeps_conditions_and_locations_apart(logged_in, catalog):
+    box = logged_in.post("/api/locations", json={"name": "Box"}).json()
+    ids = {
+        add_one(logged_in, catalog["nami_en"])["id"],
+        add_one(logged_in, catalog["nami_en"], condition="EX")["id"],
+        add_one(logged_in, catalog["nami_en"], location_id=box["id"])["id"],
+    }
+    assert len(ids) == 3
+
+
+def test_add_one_leaves_typed_in_purchases_alone(logged_in, catalog):
+    bought = add_lot(logged_in, catalog["nami_en"], unit_cost_cents=250)
+    noted = add_lot(logged_in, catalog["nami_en"], note="from Zoro")
+    added = add_one(logged_in, catalog["nami_en"])
+    assert added["id"] not in {bought["id"], noted["id"]}
+    assert added["quantity"] == 1
+
+
+def test_add_one_never_grows_another_users_lot(logged_in, catalog, login_as):
+    theirs = add_one(logged_in, catalog["nami_en"])
+    mine = add_one(login_as("zoro@example.com"), catalog["nami_en"])
+    assert mine["id"] != theirs["id"]
+    assert mine["quantity"] == 1
+
+
+def test_whole_set_in_one_request(logged_in, catalog):
+    response = logged_in.get(
+        "/api/printings", params={"set_id": catalog["set"].id, "limit": 500}
+    )
+    assert response.status_code == 200
+    assert len(response.json()) == 3

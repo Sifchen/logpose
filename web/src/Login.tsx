@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { post, type User } from './api.ts'
+import Brand from './Brand.tsx'
 
 export default function Login() {
   const queryClient = useQueryClient()
@@ -16,17 +17,18 @@ export default function Login() {
   return (
     <main className="grid min-h-screen place-items-center p-6">
       <form
-        className="w-full max-w-sm space-y-4 rounded-xl border border-line-soft bg-ink p-8"
+        className="w-full max-w-sm space-y-4 rounded-panel border border-line-soft bg-surface p-8"
         onSubmit={(event) => {
           event.preventDefault()
           login.mutate()
         }}
       >
-        <h1 className="text-3xl font-black tracking-tight">Logpose</h1>
+        <h1 className="sr-only">Log Pose</h1>
+        <Brand />
         <p className="text-sm text-muted">Your One Piece TCG collection.</p>
 
         <label className="block space-y-1">
-          <span className="text-xs font-semibold tracking-widest text-muted uppercase">Email</span>
+          <span className="eyebrow">Email</span>
           <input
             className="input"
             type="email"
@@ -38,7 +40,7 @@ export default function Login() {
         </label>
 
         <label className="block space-y-1">
-          <span className="text-xs font-semibold tracking-widest text-muted uppercase">Password</span>
+          <span className="eyebrow">Password</span>
           <input
             className="input"
             type="password"

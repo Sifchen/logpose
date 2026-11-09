@@ -49,6 +49,7 @@ export type Printing = {
   rarity: string
   variant: string
   language: string
+  colors: string[]
   image_url: string | null
   trend_cents: number | null // null = no match we trust
 }

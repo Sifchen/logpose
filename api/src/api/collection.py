@@ -175,6 +175,45 @@ def create_lot(body: LotIn, db: Db, user: CurrentUser) -> LotOut:
     return read_lot(db, user, lot.id)
 
 
+class AddOneIn(BaseModel):
+    printing_id: int
+    condition: Condition = "NM"
+    location_id: int | None = None
+
+
+@router.post("/lots/add-one")
+def add_one(body: AddOneIn, db: Db, user: CurrentUser) -> LotOut:
+    # +1 on today's lot for this card/condition/location, or a new lot.
+    # lots with a price or a note are left alone, those were typed in by hand
+    check_references(db, user, body.printing_id, body.location_id)
+    lot = db.scalars(
+        select(Lot)
+        .where(
+            Lot.user_id == user.id,
+            Lot.printing_id == body.printing_id,
+            Lot.condition == body.condition,
+            Lot.location_id.is_not_distinct_from(body.location_id),
+            Lot.acquired_on == date.today(),
+            Lot.unit_cost_cents.is_(None),
+            Lot.note.is_(None),
+        )
+        .order_by(Lot.id)
+        .limit(1)
+        # locks the row so two quick clicks don't both read the same quantity.
+        # two first clicks at once can still make two lots, total is right anyway
+        .with_for_update()
+    ).first()
+    if lot is None:
+        lot = Lot(
+            user_id=user.id, quantity=1, acquired_on=date.today(), **body.model_dump()
+        )
+        db.add(lot)
+    else:
+        lot.quantity += 1
+    db.commit()
+    return read_lot(db, user, lot.id)
+
+
 @router.patch("/lots/{lot_id}")
 def update_lot(lot_id: int, body: LotPatch, db: Db, user: CurrentUser) -> LotOut:
     lot = own_lot(db, user, lot_id)

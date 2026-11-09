@@ -29,7 +29,7 @@ export default function LocationsDialog({ onClose }: { onClose: () => void }) {
     <dialog
       ref={ref}
       onClose={onClose}
-      className="m-auto w-full max-w-sm rounded-xl border border-line bg-ink p-6 text-fg backdrop:bg-black/70"
+      className="m-auto w-full max-w-sm rounded-panel border border-line bg-ink p-6 text-fg backdrop:bg-black/70"
     >
       <h2 className="mb-1 text-xl font-bold">Locations</h2>
       <p className="mb-4 text-sm text-muted">Binders, boxes, deck boxes. Deleting one keeps its cards.</p>

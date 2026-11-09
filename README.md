@@ -10,8 +10,8 @@ from the start.
 
 - all EN and JP printings (9,805), imported from [punk-records](https://github.com/buhbbl/punk-records)
 - login with server-side sessions
-- collection: add cards by name or number, with quantity, condition, price paid
-  and location. filter, edit, delete
+- collection as a card grid or a table, with filters
+- add cards by typing a set or a name and clicking through the cards
 - daily Cardmarket trend prices for about 80% of printings, collection value
   and profit/loss
 
@@ -77,6 +77,7 @@ api/src/api/
   auth.py         passwords, sessions, login/logout/me
   catalog.py      sets, printing search, prices (same for every user)
   collection.py   your locations and lots
+  images.py       card images (downloaded once, then served from here)
   punkrecords.py  card import
   cardmarket.py   price import, matches cardmarket products to printings
   cli.py          logpose import-cards | import-prices | create-user | setup
@@ -111,7 +112,6 @@ web/src/          react app, api.ts is the only file that talks to the server
 ## not done yet
 
 - no rate limit on login, fine for a few users but needed before it's public
-- card images are linked straight from bandai's site
 - ~20% of printings have no price, mostly reprints and promos the matching skips
 - prices refresh on container start or with `make prices`, no daily job yet
 - every account has its own collection, no shared collections yet

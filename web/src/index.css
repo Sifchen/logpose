@@ -1,32 +1,131 @@
 @import "tailwindcss";
 
-/* dark blue-ish theme, same colors as my old app */
+/* latin only, the ui and card names are english */
+@import "@fontsource/chivo/latin-700.css";
+@import "@fontsource/chivo/latin-900.css";
+@import "@fontsource/schibsted-grotesk/latin-400.css";
+@import "@fontsource/schibsted-grotesk/latin-600.css";
+@import "@fontsource/jetbrains-mono/latin-500.css";
+@import "@fontsource/jetbrains-mono/latin-600.css";
+
+/* shadows don't show on near-black, so depth is lightness: sunk < ink < surface < raised */
 @theme {
   --color-sunk: #0b0e12;
   --color-ink: #12171d;
   --color-surface: #1c242d;
   --color-raised: #252f3a;
-  --color-line: #3b4e61;
+  /* line is for controls (3:1 contrast), line-soft for rows inside a panel */
+  --color-line: #66809b;
   --color-line-soft: #243040;
   --color-fg: #eaf0f6;
   --color-muted: #8c9aa9;
+  /* the one accent color */
   --color-focus: #22d3ee;
-  --color-danger: #d8433c;
+  --color-danger: #e8756d;
   --color-ok: #35a56b;
+
+  /* card colors, only for the color chips */
+  --color-game-red: #d8433c;
+  --color-game-green: #35a56b;
+  --color-game-blue: #3d7fd6;
+  --color-game-purple: #9463c9;
+  --color-game-yellow: #e0b534;
+  --color-game-black: #7c8a9b;
+
+  --font-display: "Chivo", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "Schibsted Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
+
+  --text-2xs: 0.6875rem; /* 11px: labels, chips */
+  --text-2xs--line-height: 1.4;
+  --text-xs: 0.75rem; /* 12px: numbers, codes */
+  --text-xs--line-height: 1.45;
+  --text-sm: 0.8125rem; /* 13px: rows, controls */
+  --text-sm--line-height: 1.5;
+  --text-base: 0.9375rem; /* 15px: body */
+  --text-base--line-height: 1.55;
+
+  --radius-chip: 4px;
+  --radius-tile: 9px;
+  --radius-panel: 12px;
+
+  --ease-arrive: cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+/* not in @theme because tailwind drops theme values no class uses */
+:root {
+  --d-quick: 120ms; /* colour, border */
+  --d-move: 200ms; /* position, opacity */
+  --d-flip: 460ms; /* card flips */
+  /* fan on add cards: front card width and how far out the last card goes */
+  --stack-lead: 210px;
+  --fan-reach-max: 140px;
+}
+
+@media (min-width: 640px) {
+  :root {
+    --stack-lead: 260px;
+    --fan-reach-max: 180px;
+  }
+}
+
+html {
+  color-scheme: dark;
 }
 
 body {
-  @apply bg-sunk text-fg antialiased;
+  @apply bg-ink font-sans text-fg antialiased;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+@layer base {
+  /* tailwind's reset removes the margin that centers <dialog> */
+  dialog {
+    margin: auto;
+  }
 }
 
 @layer components {
   .input {
-    @apply w-full rounded-md border border-line bg-surface px-3 py-2 text-sm outline-none focus:border-focus;
+    @apply w-full rounded-chip border border-line bg-sunk px-3 py-2 text-sm text-fg outline-none focus:border-focus;
   }
   .btn {
-    @apply rounded-md border border-line px-3 py-1.5 text-sm font-semibold hover:bg-raised disabled:opacity-50;
+    @apply rounded-chip border border-line px-3 py-1.5 text-sm font-semibold transition-colors duration-(--d-quick) hover:border-focus hover:bg-raised disabled:opacity-50;
   }
   .btn-primary {
-    @apply rounded-md bg-focus px-3 py-2 text-sm font-bold text-sunk hover:brightness-110 disabled:opacity-50;
+    @apply rounded-chip bg-focus px-3 py-2 text-sm font-semibold text-sunk transition-[filter] duration-(--d-quick) hover:brightness-110 disabled:opacity-50;
+  }
+  .eyebrow {
+    @apply font-mono text-2xs font-semibold tracking-[0.12em] text-muted uppercase;
+  }
+}
+
+/* the +N badge */
+@keyframes stamp {
+  from {
+    transform: scale(0.7);
+    opacity: 0;
+  }
+}
+
+/* ios zooms into inputs under 16px and doesn't zoom back out */
+@media (pointer: coarse) {
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    font-size: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
   }
 }

@@ -19,11 +19,15 @@ services:
     build: .
     environment:
       DATABASE_URL: postgresql+psycopg://logpose:dev@db:5432/logpose
+      MEDIA_DIR: /app/media
     ports:
       - "127.0.0.1:8000:8000"
+    volumes:
+      - media:/app/media # keeps the downloaded images across rebuilds
     depends_on:
       db:
         condition: service_healthy
 
 volumes:
   db_data:
+  media:
