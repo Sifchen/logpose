@@ -39,7 +39,8 @@ docker compose exec app logpose create-user you@example.com   # asks for a passw
 ```
 
 then open http://localhost:8000. every start runs the migrations and only loads
-cards or prices if they're missing, so later starts are quick.
+cards or prices if they're missing, so later starts are quick. the `prices`
+service checks every hour and gets the new prices once a day.
 
 ## develop
 
@@ -114,5 +115,4 @@ web/src/          react app, api.ts is the only file that talks to the server
 ## not done yet
 
 - ~20% of printings have no price, mostly reprints and promos the matching skips
-- prices refresh on container start or with `make prices`, no daily job yet
 - every account has its own collection, no shared collections yet
