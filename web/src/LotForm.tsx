@@ -6,9 +6,9 @@ export function PrintingLabel({ printing }: { printing: Printing }) {
   return (
     <div className="flex min-w-0 items-center gap-3">
       {printing.image_url ? (
-        <img src={printing.image_url} alt="" loading="lazy" className="h-14 w-10 shrink-0 rounded object-cover" />
+        <img data-thumb src={printing.image_url} alt="" loading="lazy" className="h-14 w-10 shrink-0 rounded object-cover" />
       ) : (
-        <div className="h-14 w-10 shrink-0 rounded bg-raised" />
+        <div data-thumb className="h-14 w-10 shrink-0 rounded bg-raised" />
       )}
       <div className="min-w-0">
         <div className="truncate font-semibold">{printing.name}</div>

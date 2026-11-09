@@ -52,6 +52,7 @@ export type Printing = {
   colors: string[]
   image_url: string | null
   trend_cents: number | null // null = no match we trust
+  cardmarket_url: string
 }
 export type PriceStatus = { updated_on: string | null; priced_printings: number }
 export type Lot = {

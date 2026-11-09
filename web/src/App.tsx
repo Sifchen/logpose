@@ -3,16 +3,17 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { api, ApiError, post, type User } from './api.ts'
 import Capture from './Capture.tsx'
 import Collection from './Collection.tsx'
+import Home from './Home.tsx'
 import Login from './Login.tsx'
 import Brand from './Brand.tsx'
 
-// only two screens so no router yet, add one when screens need their own urls
-const SCREENS = { collection: 'Collection', capture: 'Add cards' } as const
+// only three screens so no router yet, add one when screens need their own urls
+const SCREENS = { home: 'Home', collection: 'Collection', capture: 'Add cards' } as const
 type Screen = keyof typeof SCREENS
 
 export default function App() {
   const queryClient = useQueryClient()
-  const [screen, setScreen] = useState<Screen>('collection')
+  const [screen, setScreen] = useState<Screen>('home')
   // the server decides if we're logged in, we never guess
   const me = useQuery({ queryKey: ['me'], queryFn: () => api<User>('/api/auth/me') })
 
@@ -69,7 +70,11 @@ export default function App() {
             {nav}
           </nav>
         </header>
-        <main className="flex-1 p-4 sm:p-6">{screen === 'collection' ? <Collection /> : <Capture />}</main>
+        <main className="flex-1 p-4 sm:p-6">
+          {screen === 'home' && <Home onNavigate={setScreen} />}
+          {screen === 'collection' && <Collection />}
+          {screen === 'capture' && <Capture />}
+        </main>
       </div>
     </div>
   )

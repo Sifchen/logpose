@@ -1,19 +1,19 @@
 # every query here filters on the logged in user. someone else's lot is a 404,
 # not a 403, so you can't even tell it exists
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Annotated, Literal
 
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel, Field
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from api.auth import CurrentUser
 from api.catalog import PrintingOut, SearchText, matching, printing_out, printings_query
 from api.db import Db
-from api.models import Location, Lot, Printing, User
+from api.models import Location, Lot, PricePoint, Printing, User
 
 router = APIRouter(prefix="/api", tags=["collection"])
 
@@ -232,3 +232,33 @@ def update_lot(lot_id: int, body: LotPatch, db: Db, user: CurrentUser) -> LotOut
 def delete_lot(lot_id: int, db: Db, user: CurrentUser) -> None:
     db.delete(own_lot(db, user, lot_id))
     db.commit()
+
+
+class ValuePoint(BaseModel):
+    day: date
+    value_cents: int
+
+
+@router.get("/portfolio/history")
+def portfolio_history(
+    db: Db,
+    user: CurrentUser,
+    days: Annotated[int, Query(ge=1, le=366)] = 30,
+) -> list[ValuePoint]:
+    # the cards you have today at each day's price, so the line shows how prices
+    # moved. days without prices are just missing, not 0
+    since = date.today() - timedelta(days=days - 1)
+    rows = db.execute(
+        select(PricePoint.day, func.sum(Lot.quantity * PricePoint.trend_cents))
+        .join(Lot, Lot.printing_id == PricePoint.printing_id)
+        .join(Printing, Printing.id == Lot.printing_id)
+        .where(
+            Lot.user_id == user.id,
+            PricePoint.day >= since,
+            # same as on screen, no match means no price
+            Printing.cardmarket_id.is_not(None),
+        )
+        .group_by(PricePoint.day)
+        .order_by(PricePoint.day)
+    )
+    return [ValuePoint(day=day, value_cents=value) for day, value in rows]

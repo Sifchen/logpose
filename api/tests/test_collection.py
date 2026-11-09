@@ -1,10 +1,11 @@
+from datetime import date, timedelta
 from typing import get_args
 
 import pytest
 from sqlalchemy.exc import IntegrityError
 
 from api.collection import Condition
-from api.models import CONDITIONS, Card, Lot, Printing, Set
+from api.models import CONDITIONS, Card, Lot, PricePoint, Printing, Set
 
 
 @pytest.fixture
@@ -59,6 +60,18 @@ def test_search_by_name_or_number(logged_in, catalog):
     by_number = logged_in.get("/api/printings", params={"q": "OP01-02"}).json()
     assert {p["language"] for p in by_name} == {"EN", "JP"}
     assert [p["name"] for p in by_number] == ["Luffy"]
+
+
+def test_cardmarket_link_is_the_product_or_a_search(logged_in, session, catalog):
+    catalog["nami_en"].cardmarket_id = 690368
+    session.flush()
+    found = logged_in.get("/api/printings", params={"q": "OP01", "language": "EN"})
+    links = {p["name"]: p["cardmarket_url"] for p in found.json()}
+    base = "https://www.cardmarket.com/en/OnePiece/Products"
+    assert links == {
+        "Nami": f"{base}?idProduct=690368",
+        "Luffy": f"{base}/Search?searchString=OP01-024",
+    }
 
 
 def test_search_treats_percent_literally(logged_in, catalog):
@@ -253,3 +266,46 @@ def test_whole_set_in_one_request(logged_in, catalog):
     )
     assert response.status_code == 200
     assert len(response.json()) == 3
+
+
+def priced(session, printing, cardmarket_id, trends):
+    # gives a printing a cardmarket match and a price per "days ago"
+    printing.cardmarket_id = cardmarket_id
+    today = date.today()
+    session.add_all(
+        PricePoint(
+            printing_id=printing.id, day=today - timedelta(days=ago), trend_cents=t
+        )
+        for ago, t in trends.items()
+    )
+    session.flush()
+
+
+def test_history_values_todays_lots_at_each_days_price(logged_in, session, catalog):
+    priced(session, catalog["nami_en"], 1, {0: 300, 1: 200, 40: 999})
+    priced(session, catalog["luffy_en"], 2, {0: 50})
+    add_lot(logged_in, catalog["nami_en"], quantity=2)
+    add_lot(logged_in, catalog["luffy_en"], quantity=3)
+
+    points = logged_in.get("/api/portfolio/history", params={"days": 30}).json()
+
+    yesterday, today = date.today() - timedelta(days=1), date.today()
+    # 40 days ago is outside the window, luffy had no price yesterday
+    assert points == [
+        {"day": yesterday.isoformat(), "value_cents": 2 * 200},
+        {"day": today.isoformat(), "value_cents": 2 * 300 + 3 * 50},
+    ]
+
+
+def test_history_is_only_your_own(logged_in, session, catalog, login_as):
+    priced(session, catalog["nami_en"], 1, {0: 300})
+    add_lot(logged_in, catalog["nami_en"])
+    assert login_as("zoro@example.com").get("/api/portfolio/history").json() == []
+
+
+def test_history_skips_withdrawn_matches(logged_in, session, catalog):
+    priced(session, catalog["nami_en"], 1, {0: 300})
+    add_lot(logged_in, catalog["nami_en"])
+    catalog["nami_en"].cardmarket_id = None
+    session.flush()
+    assert logged_in.get("/api/portfolio/history").json() == []

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { euros, type Lot } from './api.ts'
 import { fromTile } from './fan.ts'
-import { CardArt } from './Grid.tsx'
+import { CardArt, CardmarketPrice } from './Grid.tsx'
 import { LotForm, PrintingLabel } from './LotForm.tsx'
 import type { PrintingGroup } from './totals.ts'
 
@@ -88,8 +88,8 @@ export default function CardDialog({
           >
             <PrintingLabel printing={p} />
             <p className="font-mono text-xs text-muted tabular-nums">
-              ×{group.quantity} owned
-              {p.trend_cents != null && ` · ${euros(p.trend_cents)} each · ${euros(p.trend_cents * group.quantity)}`}
+              ×{group.quantity} owned · <CardmarketPrice printing={p} />
+              {p.trend_cents != null && ` each · ${euros(p.trend_cents * group.quantity)}`}
             </p>
 
             {editing ? (

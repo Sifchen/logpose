@@ -4,7 +4,6 @@ import {
   api,
   CONDITIONS,
   del,
-  euros,
   patch,
   post,
   query,
@@ -14,7 +13,7 @@ import {
   type Printing,
 } from './api.ts'
 import { clamp, DRAW_SPAN, FAN_MIN_SCALE, placeCard } from './fan.ts'
-import { CardArt, ColorChips, Flip } from './Grid.tsx'
+import { CardArt, CardmarketPrice, ColorChips, Flip } from './Grid.tsx'
 import { Field } from './LotForm.tsx'
 import { groupByPrinting } from './totals.ts'
 import { useDebounced } from './useDebounced.ts'
@@ -307,12 +306,9 @@ function Fan({
           {front.set_code}
         </p>
       </div>
-      <p className="font-mono text-sm font-semibold tabular-nums">
-        {front.trend_cents == null ? (
-          <span className="text-2xs tracking-[0.06em] text-muted uppercase">no Cardmarket match</span>
-        ) : (
-          euros(front.trend_cents)
-        )}
+      {/* outside the card buttons so clicking the price doesn't add a card */}
+      <p className="font-mono text-sm font-semibold">
+        <CardmarketPrice printing={front} />
       </p>
       {mine && (
         <button

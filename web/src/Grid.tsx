@@ -71,6 +71,32 @@ export function CardArt({
   )
 }
 
+// not used inside tiles, a link inside a button is invalid html
+export function CardmarketPrice({ printing }: { printing: Printing }) {
+  const link = 'underline decoration-dotted underline-offset-2 transition-colors duration-(--d-quick) hover:text-focus'
+  return printing.trend_cents == null ? (
+    <a
+      href={printing.cardmarket_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      title="No trusted match yet: search Cardmarket for this card"
+      className={`text-2xs tracking-[0.06em] text-muted uppercase ${link}`}
+    >
+      no match ↗
+    </a>
+  ) : (
+    <a
+      href={printing.cardmarket_url}
+      target="_blank"
+      rel="noopener noreferrer"
+      title="Open on Cardmarket"
+      className={`tabular-nums ${link}`}
+    >
+      {euros(printing.trend_cents)}
+    </a>
+  )
+}
+
 // perspective outside, rotation in the middle, two faces with backface-hidden
 export function Flip({ up, children }: { up: boolean; children: ReactNode }) {
   return (
@@ -95,7 +121,7 @@ export function Flip({ up, children }: { up: boolean; children: ReactNode }) {
   )
 }
 
-function CardTile({
+export function CardTile({
   printing,
   count,
   rank,

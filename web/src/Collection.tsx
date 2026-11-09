@@ -160,8 +160,8 @@ export default function Collection() {
                       className="w-full text-left"
                       title="Edit lot"
                       onClick={(e) => {
-                        // the card flies out of the row's image
-                        const thumb = e.currentTarget.querySelector('img, div') ?? e.currentTarget
+                        // fly out of the small image, not the whole row
+                        const thumb = e.currentTarget.querySelector('[data-thumb]') ?? e.currentTarget
                         const group = groups.find((g) => g.printing.id === lot.printing.id)!
                         setOpened({ group, origin: thumb.getBoundingClientRect(), lot })
                       }}

@@ -1,5 +1,6 @@
 from datetime import date
 from typing import Annotated
+from urllib.parse import urlencode
 
 from fastapi import APIRouter, Query
 from pydantic import BaseModel
@@ -32,6 +33,17 @@ class PrintingOut(BaseModel):
     colors: list[str]
     image_url: str | None  # our own /api/... url, see images.py
     trend_cents: int | None  # None = no match we trust
+    cardmarket_url: str  # product page, or a search if there's no match
+
+
+CARDMARKET = "https://www.cardmarket.com/en/OnePiece/Products"
+
+
+def cardmarket_url(printing: Printing, card: Card) -> str:
+    # cardmarket opens a product by the same id as in the price file, so no urls to store
+    if printing.cardmarket_id:
+        return f"{CARDMARKET}?idProduct={printing.cardmarket_id}"
+    return f"{CARDMARKET}/Search?{urlencode({'searchString': card.card_number})}"
 
 
 def printing_out(
@@ -49,6 +61,7 @@ def printing_out(
         image_url=f"/api/printings/{printing.id}/image" if printing.image_url else None,
         # old prices stay in the history when a match is removed, don't show them
         trend_cents=trend if printing.cardmarket_id else None,
+        cardmarket_url=cardmarket_url(printing, card),
     )
 
 

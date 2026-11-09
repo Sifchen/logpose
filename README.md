@@ -12,8 +12,8 @@ from the start.
 - login with server-side sessions
 - collection as a card grid or a table, with filters
 - add cards by typing a set or a name and clicking through the cards
-- daily Cardmarket trend prices for about 80% of printings, collection value
-  and profit/loss
+- daily Cardmarket trend prices for about 80% of printings, value over time,
+  links to the Cardmarket product page
 
 ## stack
 
@@ -76,7 +76,7 @@ api/src/api/
   models.py       all tables
   auth.py         passwords, sessions, login/logout/me
   catalog.py      sets, printing search, prices (same for every user)
-  collection.py   your locations and lots
+  collection.py   your locations, lots and value history
   images.py       card images (downloaded once, then served from here)
   punkrecords.py  card import
   cardmarket.py   price import, matches cardmarket products to printings
@@ -96,7 +96,7 @@ web/src/          react app, api.ts is the only file that talks to the server
   anything doesn't add up. checked against 7,813 pairs from my old app, 99.7%
   agree. the other ~20% just show no price.
 - **prices are kept per day** (`price_points`), you can't download old prices
-  later.
+  later. that's what the value line on the home page uses.
 - **lots, not a counter.** "3 copies of OP01-016, bought on 2026-03-02 for
   2.50 € each". how many you own is the sum of your lots.
 - **money is integer cents**, floats can't do 0.29 exactly.
