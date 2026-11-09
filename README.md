@@ -103,6 +103,8 @@ web/src/          react app, api.ts is the only file that talks to the server
 - **sessions in the db, not JWT.** the cookie has a random token, the db only
   stores its sha256. logout deletes the row so a copied cookie stops working.
   cookie is `HttpOnly` and `SameSite=Lax`, passwords use argon2id.
+- **5 wrong logins in 15 min** for the same email and ip, then it answers 429
+  until the oldest try is 15 min old. counted in memory, fine for one process.
 - **someone else's lot is a 404**, not a 403, so you can't even tell it exists.
 - **postgres checks it too.** quantity > 0, valid condition, no negative price,
   as check constraints, so a bug in the api can't store a bad row.
@@ -111,7 +113,6 @@ web/src/          react app, api.ts is the only file that talks to the server
 
 ## not done yet
 
-- no rate limit on login, fine for a few users but needed before it's public
 - ~20% of printings have no price, mostly reprints and promos the matching skips
 - prices refresh on container start or with `make prices`, no daily job yet
 - every account has its own collection, no shared collections yet

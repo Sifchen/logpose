@@ -2,7 +2,7 @@ from datetime import UTC, datetime, timedelta
 
 from sqlalchemy import select, update
 
-from api.auth import COOKIE, hash_password, verify_password
+from api.auth import COOKIE, MAX_FAILS, _fails, hash_password, verify_password
 from api.models import LoginSession
 
 
@@ -62,3 +62,40 @@ def test_expired_session_is_rejected(logged_in, session):
         update(LoginSession).values(expires_at=datetime.now(UTC) - timedelta(seconds=1))
     )
     assert logged_in.get("/api/auth/me").status_code == 401
+
+
+def login(client, email, password):
+    return client.post("/api/auth/login", json={"email": email, "password": password})
+
+
+def test_sixth_try_is_blocked_even_with_the_right_password(client, user, password):
+    for _ in range(MAX_FAILS):
+        assert login(client, user.email, "nope").status_code == 401
+    blocked = login(client, user.email, password)
+    assert blocked.status_code == 429
+    assert 0 < int(blocked.headers["retry-after"]) <= 15 * 60
+
+
+def test_good_login_resets_the_count(client, user, password):
+    for _ in range(MAX_FAILS - 1):
+        login(client, user.email, "nope")
+    assert login(client, user.email, password).status_code == 200
+    for _ in range(MAX_FAILS - 1):
+        login(client, user.email, "nope")
+    assert login(client, user.email, password).status_code == 200
+
+
+def test_limit_is_per_email(client, user, password):
+    for _ in range(MAX_FAILS):
+        login(client, "zoro@example.com", "nope")
+    assert login(client, user.email, password).status_code == 200
+
+
+def test_old_fails_dont_count(client, user, password):
+    for _ in range(MAX_FAILS):
+        login(client, user.email, "nope")
+    # pretend they all happened 16 minutes ago
+    old = datetime.now(UTC) - timedelta(minutes=16)
+    for times in _fails.values():
+        times[:] = [old] * len(times)
+    assert login(client, user.email, password).status_code == 200

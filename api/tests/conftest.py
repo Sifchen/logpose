@@ -5,6 +5,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
+from api import auth
 from api.auth import hash_password
 from api.db import get_db
 from api.main import app
@@ -44,6 +45,12 @@ def client(session):
     app.dependency_overrides[get_db] = lambda: session
     yield TestClient(app)
     app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def no_failed_logins():
+    # the login limit lives in memory, clear it so tests don't affect each other
+    auth._fails.clear()
 
 
 def make_user(session, email: str) -> User:

@@ -40,6 +40,23 @@ def normalize_email(email: str) -> str:
     return email.strip().lower()
 
 
+MAX_FAILS = 5
+FAIL_WINDOW = timedelta(minutes=15)
+# failed logins per (email, ip). only in memory, so a restart resets it and it
+# only works with one api process, which is all we run
+_fails: dict[tuple[str, str], list[datetime]] = {}
+
+
+def recent_fails(key: tuple[str, str]) -> list[datetime]:
+    cutoff = datetime.now(UTC) - FAIL_WINDOW
+    recent = [t for t in _fails.get(key, []) if t > cutoff]
+    if recent:
+        _fails[key] = recent
+    else:
+        _fails.pop(key, None)  # so old keys don't pile up
+    return recent
+
+
 def _hash_token(token: str) -> str:
     # db only gets the hash, so a leaked table can't be used to log in
     return hashlib.sha256(token.encode()).hexdigest()
@@ -96,16 +113,28 @@ router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
 @router.post("/login")
-def login(body: Credentials, response: Response, db: Db) -> UserOut:
-    user = db.scalars(
-        select(User).where(User.email == normalize_email(body.email))
-    ).one_or_none()
+def login(body: Credentials, request: Request, response: Response, db: Db) -> UserOut:
+    email = normalize_email(body.email)
+    key = (email, request.client.host if request.client else "")
+    fails = recent_fails(key)
+    if len(fails) >= MAX_FAILS:
+        wait = fails[0] + FAIL_WINDOW - datetime.now(UTC)
+        raise HTTPException(
+            status_code=429,
+            detail="Too many tries, wait a few minutes",
+            headers={"Retry-After": str(int(wait.total_seconds()) + 1)},
+        )
+
+    user = db.scalars(select(User).where(User.email == email)).one_or_none()
 
     if user is None:
         verify_password(_DUMMY_HASH, body.password)
     if user is None or not verify_password(user.password_hash, body.password):
+        _fails.setdefault(key, []).append(datetime.now(UTC))
         # same message for both on purpose
         raise HTTPException(status_code=401, detail="Wrong email or password")
+
+    _fails.pop(key, None)
 
     response.set_cookie(
         COOKIE,
